@@ -23,20 +23,20 @@ export const getReminderColor = (id: string): string => {
 
 export const getNotificationBody = (id: string): string => {
   switch (id) {
-    case 'preworkout': return '1 Banana + Black Coffee + 5 Soaked Almonds ☕';
+    case 'preworkout': return '1 Banana + 2-3 Dates + Black Coffee ☕';
     case 'workout': return 'Time to train! Hydrate with 500ml-1L water during session 💪';
-    case 'postworkout': return '4-5 Boiled Egg Whites - immediate protein hit! 🥚';
-    case 'shake': return 'Muscle Shake: Milk, Muesli, PB, Honey, Banana! 🥤';
-    case 'lunch': return '150g Chicken Breast Curry + 2 Rotis + Dal + Dahi + Salad 🍗';
-    case 'snack': return '100g Paneer cubes (sautéed) or Roasted Chana! 🧀';
-    case 'dinner': return '150g Grilled Fish or Chicken + 1 Roti + Sabzi (Broccoli, Beans) 🐟';
+    case 'postworkout': return '5-6 Boiled Egg Whites - immediate protein hit! 🥚';
+    case 'shake': return 'Upgraded Muscle Shake: 350ml Milk, 3/4 Cup Muesli, 2 tbsp PB, 1 XL Banana! 🥤';
+    case 'lunch': return '200g Chicken Curry + 3 Rotis + Dal + Dahi + Salad 🍗';
+    case 'snack': return '100g Paneer cubes or Sprouted Moong! 🧀';
+    case 'dinner': return '150g Grilled Fish + 1 Roti + Mixed Sabzi 🐟';
     case 'sleep': return 'Wind down for quality sleep - in bed by 10:30 PM! 😴';
-    case 'breakfast': return '3 Eggs (Bhurji/Omelet) + 2 Brown Bread + Nuts 🍳';
-    case 'breakfast_rest': return '4 Egg Omelet + Veggies (No Bread) 🍳';
-    case 'preworkout_eve': return '1 Banana + Black Coffee + 2-3 Dates ☕';
+    case 'breakfast': return '4 Eggs (Bhurji/Omelet) + 3 Brown Bread + Dahi 🍳';
+    case 'breakfast_rest': return '4 Eggs + 3 Toast (Morning) or 4 Eggs + 2 Toast (Evening rest) 🍳';
+    case 'preworkout_eve': return '1 Banana + 2-3 Dates + Black Coffee ☕';
     case 'workout_eve': return 'Evening training! Hydrate with 1L water during session 💪';
-    case 'postworkout_eve': return '4-5 Boiled Egg Whites - rapid protein! 🥚';
-    case 'dinner_eve': return 'Recovery Feast: Fish/Chicken + Veggies + Muscle Shake! 🍽️';
+    case 'postworkout_eve': return '5-6 Boiled Egg Whites - rapid protein! 🥚';
+    case 'dinner_eve': return 'Recovery Feast: Fish/Chicken + Veggies + Upgraded Muscle Shake! 🍽️';
     case 'sleep_eve': return 'Wind down - in bed by 11:00 PM! 😴';
     default: return 'HybridFit Reminder';
   }
