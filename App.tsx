@@ -193,7 +193,12 @@ export default function App() {
 
       if (savedHydration) {
         const parsed = JSON.parse(savedHydration);
-        if (parsed.date === today) setHydration(parsed);
+        if (parsed.date === today) {
+          const safeGlasses = typeof parsed.glasses === 'number' && !Number.isNaN(parsed.glasses) ? parsed.glasses : 0;
+          const sanitized = { ...parsed, glasses: safeGlasses };
+          setHydration(sanitized);
+          if (safeGlasses !== parsed.glasses) await AsyncStorage.setItem('hydration', JSON.stringify(sanitized));
+        }
         else {
           const reset = { date: today, glasses: 0, lastReminderHour: 5 };
           setHydration(reset);
@@ -326,10 +331,12 @@ export default function App() {
   const saveHydration = async (data: HydrationData) => { setHydration(data); await AsyncStorage.setItem('hydration', JSON.stringify(data)); };
 
   const addWaterGlass = async (count: number = 1) => {
-    if (hydration.glasses >= TOTAL_GLASSES) { Alert.alert('🎉 Goal Complete!', "You've already hit your 4L goal today!"); return; }
-    const toAdd = Math.min(count, TOTAL_GLASSES - hydration.glasses);
+    const safeCount = typeof count === 'number' && !Number.isNaN(count) ? Math.floor(count) : 1;
+    const currentGlasses = typeof hydration.glasses === 'number' && !Number.isNaN(hydration.glasses) ? hydration.glasses : 0;
+    if (currentGlasses >= TOTAL_GLASSES) { Alert.alert('🎉 Goal Complete!', "You've already hit your 4L goal today!"); return; }
+    const toAdd = Math.min(safeCount, TOTAL_GLASSES - currentGlasses);
     if (toAdd <= 0) return;
-    const newGlasses = hydration.glasses + toAdd;
+    const newGlasses = currentGlasses + toAdd;
     await saveHydration({ ...hydration, glasses: newGlasses });
     const remaining = TOTAL_GLASSES - newGlasses;
     if (newGlasses >= TOTAL_GLASSES) {
@@ -343,8 +350,9 @@ export default function App() {
   };
 
   const removeWaterGlass = async () => {
-    if (hydration.glasses <= 0) return;
-    await saveHydration({ ...hydration, glasses: hydration.glasses - 1 });
+    const currentGlasses = typeof hydration.glasses === 'number' && !Number.isNaN(hydration.glasses) ? hydration.glasses : 0;
+    if (currentGlasses <= 0) return;
+    await saveHydration({ ...hydration, glasses: currentGlasses - 1 });
   };
 
   // ── Reminder Completion & Macros ──

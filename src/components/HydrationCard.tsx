@@ -10,9 +10,10 @@ interface HydrationCardProps {
 }
 
 export const HydrationCard: React.FC<HydrationCardProps> = ({ glasses, addWaterGlass, removeWaterGlass }) => {
-  const progress = Math.min((glasses / TOTAL_GLASSES) * 100, 100);
-  const liters = (glasses * GLASS_SIZE / 1000).toFixed(1);
-  const remaining = ((TOTAL_GLASSES - glasses) * GLASS_SIZE / 1000).toFixed(1);
+  const safeGlasses = typeof glasses === 'number' && !Number.isNaN(glasses) ? glasses : 0;
+  const progress = Math.min((safeGlasses / TOTAL_GLASSES) * 100, 100);
+  const liters = (safeGlasses * GLASS_SIZE / 1000).toFixed(1);
+  const remaining = ((TOTAL_GLASSES - safeGlasses) * GLASS_SIZE / 1000).toFixed(1);
 
   return (
     <View style={styles.hydrationCard}>
@@ -33,10 +34,10 @@ export const HydrationCard: React.FC<HydrationCardProps> = ({ glasses, addWaterG
           <Text style={styles.glassBtnText}>−</Text>
         </TouchableOpacity>
         <View style={styles.glassDisplay}>
-          <Text style={styles.glassCount}>{glasses}</Text>
+          <Text style={styles.glassCount}>{safeGlasses}</Text>
           <Text style={styles.glassLabel}>/ {TOTAL_GLASSES} glasses</Text>
         </View>
-        <TouchableOpacity style={[styles.glassBtn, styles.glassBtnAdd]} onPress={addWaterGlass}>
+        <TouchableOpacity style={[styles.glassBtn, styles.glassBtnAdd]} onPress={() => addWaterGlass()}>
           <Text style={[styles.glassBtnText, styles.glassBtnAddText]}>+</Text>
         </TouchableOpacity>
       </View>
@@ -55,7 +56,7 @@ export const HydrationCard: React.FC<HydrationCardProps> = ({ glasses, addWaterG
 
       <View style={styles.hydrationStatus}>
         <Text style={styles.hydrationStatusText}>
-          {glasses >= TOTAL_GLASSES
+          {safeGlasses >= TOTAL_GLASSES
             ? "🎉 Goal Complete! Great job staying hydrated!"
             : `${remaining}L remaining • Reminders every hour`}
         </Text>
