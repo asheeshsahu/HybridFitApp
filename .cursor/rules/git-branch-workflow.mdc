@@ -1,0 +1,49 @@
+---
+description: Git branching workflow - branch from asheeshsahu main, push to asheeshsahu
+alwaysApply: true
+---
+
+# Git Branch Workflow
+
+**Target repo:** https://github.com/asheeshsahu/HybridFitApp.git (upstream)  
+**Do NOT use** asheesh-sahuSFDC (origin) for new branches.
+
+## 1. Create a child branch from upstream/main
+
+```bash
+git fetch upstream
+git checkout -b <branch-name> upstream/main
+```
+
+Use a descriptive branch name (e.g., `feature/hydration-fix`, `fix/meal-tracking`).
+
+## 2. Make changes
+
+Implement the requested changes on the new branch only.
+
+## 3. Commit and push to asheeshsahu (upstream)
+
+```bash
+git add <changed-files>
+git commit -m "<descriptive message>"
+git push -u upstream <branch-name>
+```
+
+Or with token auth:
+```bash
+git push -u https://<token>@github.com/asheeshsahu/HybridFitApp.git <branch-name>
+```
+
+## 4. Sync
+
+After pushing, ensure upstream is in sync. Fetch and rebase if needed:
+```bash
+git fetch upstream
+git rebase upstream/main  # if working on a branch
+```
+
+## Rules
+
+- **Always** branch from `upstream/main` (asheeshsahu/HybridFitApp)
+- **Always** push to `upstream` (asheeshsahu), not origin (asheesh-sahuSFDC)
+- **Never** commit directly to main
