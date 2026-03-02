@@ -21,7 +21,7 @@ import { getNotificationBody } from './src/utils/helpers';
 import {
   Header, HydrationCard, TodayWorkout, FollowupCard,
   WeekGrid, RemindersList, MealDetailModal, MealPickerModal,
-  MacroTracker, StatsGrid, WorkoutShiftToggle, DayScheduleModal,
+  TimePickerModal, MacroTracker, StatsGrid, WorkoutShiftToggle, DayScheduleModal,
   EndOfDayWorkoutModal, SplashScreen,
 } from './src/components';
 import type { WorkoutShift } from './src/components/WorkoutShiftToggle';
@@ -46,6 +46,8 @@ export default function App() {
   const [selectedReminder, setSelectedReminder] = useState<Reminder | null>(null);
   const [showMealPicker, setShowMealPicker] = useState(false);
   const [pendingCompleteId, setPendingCompleteId] = useState<string | null>(null);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [pendingCompletionWithTime, setPendingCompletionWithTime] = useState<{ id: string; selectedMeal: MealOption | null; reminderLabel?: string } | null>(null);
   const [dailyMacros, setDailyMacros] = useState<DailyMacros>({
     date: getTodayKey(), consumed: { calories: 0, protein: 0, carbs: 0, fats: 0 }, meals: [],
   });
@@ -362,6 +364,25 @@ export default function App() {
     return mealOptionsData[id] || [];
   };
 
+  const getReminderLabel = (id: string): string => {
+    const source = isRestDay ? (workoutShift === 'evening' ? restDayRemindersEvening : restDayRemindersMorning) : (workoutShift === 'evening' ? eveningReminders : reminders);
+    return source.find(r => r.id === id)?.title ?? id;
+  };
+
+  const handleMealSelectedForCompletion = (id: string, option: MealOption) => {
+    setShowMealPicker(false);
+    setPendingCompleteId(null);
+    setPendingCompletionWithTime({ id, selectedMeal: option, reminderLabel: getReminderLabel(id) });
+    setShowTimePicker(true);
+  };
+
+  const handleTimePickerConfirm = (completedTime: string) => {
+    if (!pendingCompletionWithTime) return;
+    finalizeCompletion(pendingCompletionWithTime.id, pendingCompletionWithTime.selectedMeal, completedTime);
+    setPendingCompletionWithTime(null);
+    setShowTimePicker(false);
+  };
+
   const markReminderComplete = (id: string) => {
     const options = getActiveMealOptions(id);
     if (options.length > 0) {
@@ -369,12 +390,13 @@ export default function App() {
       setPendingCompleteId(id);
       setTimeout(() => setShowMealPicker(true), 300);
     } else {
-      finalizeCompletion(id, null);
+      setPendingCompletionWithTime({ id, selectedMeal: null, reminderLabel: getReminderLabel(id) });
+      setShowTimePicker(true);
     }
   };
 
-  const finalizeCompletion = async (id: string, selectedMeal: MealOption | null) => {
-    const currentTime = getCurrentTime();
+  const finalizeCompletion = async (id: string, selectedMeal: MealOption | null, completedTime?: string) => {
+    const currentTime = completedTime ?? getCurrentTime();
     const sourceReminders = isRestDay ? (workoutShift === 'evening' ? restDayRemindersEvening : restDayRemindersMorning) : (workoutShift === 'evening' ? eveningReminders : reminders);
     const order = sourceReminders.map(r => r.id);
     const scheduledTime = completionData.adjustedTimes[id] || sourceReminders.find(r => r.id === id)?.time || '00:00';
@@ -718,8 +740,14 @@ export default function App() {
             visible={showMealPicker}
             pendingId={pendingCompleteId}
             options={pendingCompleteId ? getActiveMealOptions(pendingCompleteId) : []}
-            onSelect={(id, option) => finalizeCompletion(id, option)}
+            onSelect={handleMealSelectedForCompletion}
             onClose={() => { setShowMealPicker(false); setPendingCompleteId(null); }}
+          />
+          <TimePickerModal
+            visible={showTimePicker}
+            reminderLabel={pendingCompletionWithTime?.reminderLabel}
+            onConfirm={handleTimePickerConfirm}
+            onClose={() => { setShowTimePicker(false); setPendingCompletionWithTime(null); }}
           />
 
           <EndOfDayWorkoutModal

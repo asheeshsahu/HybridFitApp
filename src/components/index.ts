@@ -8,6 +8,7 @@ export { WeekGrid } from './WeekGrid';
 export { RemindersList } from './RemindersList';
 export { MealDetailModal } from './MealDetailModal';
 export { MealPickerModal } from './MealPickerModal';
+export { TimePickerModal } from './TimePickerModal';
 export { EndOfDayWorkoutModal } from './EndOfDayWorkoutModal';
 export { AddExtraMealModal } from './AddExtraMealModal';
 export { SplashScreen } from './SplashScreen';
