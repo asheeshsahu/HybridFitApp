@@ -29,10 +29,7 @@ git commit -m "<descriptive message>"
 git push -u upstream <branch-name>
 ```
 
-Or with token auth:
-```bash
-git push -u https://<token>@github.com/asheeshsahu/HybridFitApp.git <branch-name>
-```
+The remote URLs (origin, upstream) are configured with token auth locally — pushes will authenticate automatically.
 
 ## 4. Sync
 
