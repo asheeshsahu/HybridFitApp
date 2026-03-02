@@ -416,6 +416,10 @@ export default function App() {
     setCompletionData(updatedCompletion);
     await AsyncStorage.setItem('reminderCompletions', JSON.stringify(updatedCompletion));
 
+    if (id === 'workout' || id === 'workout_eve') {
+      await AsyncStorage.setItem(`workoutCheckAsked_${getTodayKey()}`, 'true');
+    }
+
     if (selectedMeal && selectedMeal.macros.calories > 0) {
       const newMeals = [...dailyMacros.meals, { reminderId: id, option: selectedMeal.label, macros: selectedMeal.macros, time: currentTime }];
       const newConsumed: MacroInfo = {
@@ -433,12 +437,15 @@ export default function App() {
     setShowMealPicker(false);
     setPendingCompleteId(null);
 
-    const shiftLabel = shiftMinutes === 0 ? 'Right on schedule!'
-      : shiftMinutes > 0 ? `${shiftMinutes} min late — upcoming reminders shifted forward`
-      : `${Math.abs(shiftMinutes)} min early — upcoming reminders shifted earlier`;
-    const macroMsg = selectedMeal && selectedMeal.macros.calories > 0
-      ? `\n+${selectedMeal.macros.calories} cal | ${selectedMeal.macros.protein}g P | ${selectedMeal.macros.carbs}g C | ${selectedMeal.macros.fats}g F` : '';
-    Alert.alert('✅ Done!', shiftLabel + macroMsg);
+    const isWorkout = id === 'workout' || id === 'workout_eve';
+    if (!isWorkout) {
+      const shiftLabel = shiftMinutes === 0 ? 'Right on schedule!'
+        : shiftMinutes > 0 ? `${shiftMinutes} min late — upcoming reminders shifted forward`
+        : `${Math.abs(shiftMinutes)} min early — upcoming reminders shifted earlier`;
+      const macroMsg = selectedMeal && selectedMeal.macros.calories > 0
+        ? `\n+${selectedMeal.macros.calories} cal | ${selectedMeal.macros.protein}g P | ${selectedMeal.macros.carbs}g C | ${selectedMeal.macros.fats}g F` : '';
+      Alert.alert('✅ Done!', shiftLabel + macroMsg);
+    }
   };
 
   const getSourceReminders = () => isRestDay ? (workoutShift === 'evening' ? restDayRemindersEvening : restDayRemindersMorning) : (workoutShift === 'evening' ? eveningReminders : reminders);
@@ -509,13 +516,22 @@ export default function App() {
     const asked = await AsyncStorage.getItem(`workoutCheckAsked_${today}`);
     if (asked === 'true') return;
 
-    const [savedOffset, savedCompletions] = await Promise.all([
+    const [savedOffset, savedCompletions, savedCompletedDays] = await Promise.all([
       AsyncStorage.getItem('scheduleOffset'),
       AsyncStorage.getItem('reminderCompletions'),
+      AsyncStorage.getItem('completedDays'),
     ]);
     const offset = savedOffset ? parseInt(savedOffset, 10) : 0;
     const todayWorkoutCheck = getWorkoutForDay(now.getDay(), isNaN(offset) ? 0 : offset);
     if (todayWorkoutCheck.type === 'rest') return;
+
+    // Check if workout was marked done via week grid (completedDays)
+    try {
+      const completedDaysMap: Record<string, boolean> = savedCompletedDays ? JSON.parse(savedCompletedDays) : {};
+      if (completedDaysMap[today]) return;
+    } catch {
+      // ignore parse error
+    }
 
     let completions: { date?: string; completions?: Record<string, string> } = {};
     try {

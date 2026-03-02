@@ -159,6 +159,17 @@ export const styles = StyleSheet.create({
   customMealBtn: { backgroundColor: '#7c3aed', borderRadius: 12, padding: 14, alignItems: 'center', marginTop: 4 },
   customMealBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
 
+  // Time Picker
+  timePickerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginVertical: 8 },
+  timePickerColumn: { alignItems: 'center', minWidth: 80 },
+  timePickerLabel: { fontSize: 11, fontWeight: '700', color: '#64748b', letterSpacing: 1, marginBottom: 8 },
+  timePickerScroll: { width: 70 },
+  timePickerItem: { justifyContent: 'center', alignItems: 'center' },
+  timePickerItemText: { fontSize: 18, fontWeight: '600', color: '#64748b' },
+  timePickerItemSelected: { color: '#fff', fontWeight: '700', fontSize: 22 },
+  timePickerItemDisabled: { color: '#475569', opacity: 0.5 },
+  timePickerSeparator: { fontSize: 24, fontWeight: '700', color: '#94a3b8', marginHorizontal: 4, marginBottom: 60 },
+
   // Macro Tracker
   macroTrackerCard: { backgroundColor: '#252547', borderRadius: 24, padding: 20, marginBottom: 28, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
   macroCalorieHeader: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', marginBottom: 12 },
