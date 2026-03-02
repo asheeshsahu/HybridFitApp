@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Modal, Pressable, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
-import { WeekDay, Reminder } from '../types';
+import { WeekDay, Reminder, ReminderCompletionData, DailyMacros, HydrationData } from '../types';
 import { formatTime, formatDateLong } from '../utils/time';
 import { getReminderColor } from '../utils/helpers';
 import { styles } from '../styles';
@@ -9,6 +9,12 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HEIGHT = Math.min(SCREEN_HEIGHT * 0.85, 600);
 
 export type WorkoutShift = 'morning' | 'evening';
+
+interface DayData {
+  completionData: ReminderCompletionData | null;
+  dailyMacros: DailyMacros | null;
+  hydration: HydrationData | null;
+}
 
 interface DayScheduleModalProps {
   visible: boolean;
@@ -19,6 +25,7 @@ interface DayScheduleModalProps {
   onClose: () => void;
   onToggleComplete?: (dateKey: string) => void;
   isPastOrToday?: boolean;
+  dayData?: DayData;
 }
 
 export const DayScheduleModal: React.FC<DayScheduleModalProps> = ({
@@ -30,11 +37,16 @@ export const DayScheduleModal: React.FC<DayScheduleModalProps> = ({
   onClose,
   onToggleComplete,
   isPastOrToday = false,
+  dayData,
 }) => {
   if (!day) return null;
 
   const dateLabel = formatDateLong(day.dateKey);
   const isToday = day.isToday;
+  const completionData = dayData?.completionData;
+  const dailyMacros = dayData?.dailyMacros;
+  const hydration = dayData?.hydration;
+  const hasLoggedData = completionData || dailyMacros?.meals?.length || (hydration && hydration.glasses > 0);
 
   return (
     <Modal visible={visible} transparent animationType="slide">
@@ -99,18 +111,66 @@ export const DayScheduleModal: React.FC<DayScheduleModalProps> = ({
               </>
             )}
 
+            {hasLoggedData && (
+              <>
+                <Text style={styles.modalSectionLabel}>LOGGED</Text>
+                {hydration && hydration.glasses > 0 && (
+                  <View style={[styles.reminderCard, { marginBottom: 8, borderColor: '#3b82f6', backgroundColor: 'rgba(30,58,95,0.5)' }]}>
+                    <View style={[styles.reminderIcon, { backgroundColor: '#3b82f6' }]}>
+                      <Text style={styles.reminderIconText}>💧</Text>
+                    </View>
+                    <View style={styles.reminderContent}>
+                      <Text style={styles.reminderTitle}>Hydration</Text>
+                      <Text style={styles.reminderTime}>{hydration.glasses} glasses</Text>
+                    </View>
+                    <View style={[styles.completionCircle, styles.completionCircleDone]}>
+                      <Text style={styles.completionCheck}>✓</Text>
+                    </View>
+                  </View>
+                )}
+                {dailyMacros && dailyMacros.consumed.calories > 0 && (
+                  <View style={[styles.reminderCard, { marginBottom: 8 }]}>
+                    <View style={[styles.reminderIcon, { backgroundColor: '#f97316' }]}>
+                      <Text style={styles.reminderIconText}>📊</Text>
+                    </View>
+                    <View style={styles.reminderContent}>
+                      <Text style={styles.reminderTitle}>Macros</Text>
+                      <Text style={styles.reminderTime}>
+                        {dailyMacros.consumed.calories} cal | {dailyMacros.consumed.protein}g P | {dailyMacros.consumed.carbs}g C | {dailyMacros.consumed.fats}g F
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </>
+            )}
+
             <Text style={styles.modalSectionLabel}>SCHEDULE</Text>
-            {reminders.map((reminder) => (
-              <View key={reminder.id} style={[styles.reminderCard, { marginBottom: 8 }]}>
-                <View style={[styles.reminderIcon, { backgroundColor: getReminderColor(reminder.id) }]}>
-                  <Text style={styles.reminderIconText}>{reminder.icon}</Text>
+            {reminders.map((reminder) => {
+              const completed = !!completionData?.completions[reminder.id];
+              const doneTime = completionData?.completions[reminder.id];
+              const mealEntry = dailyMacros?.meals?.find(m => m.reminderId === reminder.id);
+              return (
+                <View key={reminder.id} style={[styles.reminderCard, { marginBottom: 8 }, completed && styles.reminderCardCompleted]}>
+                  <View style={[styles.reminderIcon, { backgroundColor: getReminderColor(reminder.id), opacity: completed ? 0.5 : 1 }]}>
+                    <Text style={styles.reminderIconText}>{reminder.icon}</Text>
+                  </View>
+                  <View style={styles.reminderContent}>
+                    <Text style={[styles.reminderTitle, completed && styles.reminderTitleCompleted]}>{reminder.title}</Text>
+                    <Text style={styles.reminderTime}>{formatTime(reminder.time)}</Text>
+                    {completed && doneTime && (
+                      <Text style={styles.reminderDoneAt}>
+                        {mealEntry ? `✓ ${mealEntry.option} at ${formatTime(doneTime)}` : `Done at ${formatTime(doneTime)}`}
+                      </Text>
+                    )}
+                  </View>
+                  {completed && (
+                    <View style={[styles.completionCircle, styles.completionCircleDone]}>
+                      <Text style={styles.completionCheck}>✓</Text>
+                    </View>
+                  )}
                 </View>
-                <View style={styles.reminderContent}>
-                  <Text style={styles.reminderTitle}>{reminder.title}</Text>
-                  <Text style={styles.reminderTime}>{formatTime(reminder.time)}</Text>
-                </View>
-              </View>
-            ))}
+              );
+            })}
 
             {isPastOrToday && onToggleComplete && !day.isRest && (
               <TouchableOpacity

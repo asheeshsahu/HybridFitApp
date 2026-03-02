@@ -61,6 +61,11 @@ export default function App() {
   const [selectedScheduleDay, setSelectedScheduleDay] = useState<WeekDay | null>(null);
   const [scheduleDayReminders, setScheduleDayReminders] = useState<Reminder[]>([]);
   const [scheduleDayShift, setScheduleDayShift] = useState<WorkoutShift>('morning');
+  const [scheduleDayData, setScheduleDayData] = useState<{
+    completionData: ReminderCompletionData | null;
+    dailyMacros: DailyMacros | null;
+    hydration: HydrationData | null;
+  }>({ completionData: null, dailyMacros: null, hydration: null });
   const [scheduleOffset, setScheduleOffset] = useState(0);
   const [showEndOfDayModal, setShowEndOfDayModal] = useState(false);
   const [endOfDayStep, setEndOfDayStep] = useState<1 | 2>(1);
@@ -139,6 +144,7 @@ export default function App() {
   useEffect(() => {
     const today = getTodayKey();
     if (completionData.date !== today) {
+      AsyncStorage.setItem(`reminderCompletions_${completionData.date}`, JSON.stringify(completionData));
       const reset: ReminderCompletionData = { date: today, completions: {}, adjustedTimes: {} };
       setCompletionData(reset);
       AsyncStorage.setItem('reminderCompletions', JSON.stringify(reset));
@@ -152,12 +158,23 @@ export default function App() {
   useEffect(() => {
     const today = getTodayKey();
     if (hydration.date !== today) {
+      AsyncStorage.setItem(`hydration_${hydration.date}`, JSON.stringify(hydration));
       const reset = { date: today, glasses: 0, lastReminderHour: 5 };
       setHydration(reset);
       AsyncStorage.setItem('hydration', JSON.stringify(reset));
       scheduleHydrationReminders();
     }
   }, [hydration.date]);
+
+  useEffect(() => {
+    const today = getTodayKey();
+    if (dailyMacros.date !== today) {
+      AsyncStorage.setItem(`dailyMacros_${dailyMacros.date}`, JSON.stringify(dailyMacros));
+      const reset: DailyMacros = { date: today, consumed: { calories: 0, protein: 0, carbs: 0, fats: 0 }, meals: [] };
+      setDailyMacros(reset);
+      AsyncStorage.setItem('dailyMacros', JSON.stringify(reset));
+    }
+  }, [dailyMacros.date]);
 
   // ── Data Loading ──
   const loadData = async () => {
@@ -202,6 +219,7 @@ export default function App() {
           if (safeGlasses !== parsed.glasses) await AsyncStorage.setItem('hydration', JSON.stringify(sanitized));
         }
         else {
+          await AsyncStorage.setItem(`hydration_${parsed.date}`, savedHydration);
           const reset = { date: today, glasses: 0, lastReminderHour: 5 };
           setHydration(reset);
           await AsyncStorage.setItem('hydration', JSON.stringify(reset));
@@ -212,6 +230,7 @@ export default function App() {
         const parsed = JSON.parse(savedCompletions);
         if (parsed.date === today) setCompletionData(parsed);
         else {
+          await AsyncStorage.setItem(`reminderCompletions_${parsed.date}`, savedCompletions);
           const reset: ReminderCompletionData = { date: today, completions: {}, adjustedTimes: {} };
           setCompletionData(reset);
           await AsyncStorage.setItem('reminderCompletions', JSON.stringify(reset));
@@ -222,6 +241,7 @@ export default function App() {
         const parsed = JSON.parse(savedMacros);
         if (parsed.date === today) setDailyMacros(parsed);
         else {
+          await AsyncStorage.setItem(`dailyMacros_${parsed.date}`, savedMacros);
           const reset: DailyMacros = { date: today, consumed: { calories: 0, protein: 0, carbs: 0, fats: 0 }, meals: [] };
           setDailyMacros(reset);
           await AsyncStorage.setItem('dailyMacros', JSON.stringify(reset));
@@ -330,7 +350,12 @@ export default function App() {
   };
 
   // ── Hydration ──
-  const saveHydration = async (data: HydrationData) => { setHydration(data); await AsyncStorage.setItem('hydration', JSON.stringify(data)); };
+  const saveHydration = async (data: HydrationData) => {
+    setHydration(data);
+    const json = JSON.stringify(data);
+    await AsyncStorage.setItem('hydration', json);
+    await AsyncStorage.setItem(`hydration_${data.date}`, json);
+  };
 
   const addWaterGlass = async (count: number = 1) => {
     const safeCount = typeof count === 'number' && !Number.isNaN(count) ? Math.floor(count) : 1;
@@ -414,10 +439,14 @@ export default function App() {
 
     const updatedCompletion: ReminderCompletionData = { ...completionData, completions: newCompletions, adjustedTimes: newAdjustedTimes };
     setCompletionData(updatedCompletion);
-    await AsyncStorage.setItem('reminderCompletions', JSON.stringify(updatedCompletion));
+    const completionJson = JSON.stringify(updatedCompletion);
+    await AsyncStorage.setItem('reminderCompletions', completionJson);
+    await AsyncStorage.setItem(`reminderCompletions_${updatedCompletion.date}`, completionJson);
 
     if (id === 'workout' || id === 'workout_eve') {
-      await AsyncStorage.setItem(`workoutCheckAsked_${getTodayKey()}`, 'true');
+      const today = getTodayKey();
+      await AsyncStorage.setItem(`workoutCheckAsked_${today}`, 'true');
+      await saveCompletedDays({ ...completedDays, [today]: true });
     }
 
     if (selectedMeal && selectedMeal.macros.calories > 0) {
@@ -430,7 +459,9 @@ export default function App() {
       };
       const updatedMacros: DailyMacros = { ...dailyMacros, consumed: newConsumed, meals: newMeals };
       setDailyMacros(updatedMacros);
-      await AsyncStorage.setItem('dailyMacros', JSON.stringify(updatedMacros));
+      const macrosJson = JSON.stringify(updatedMacros);
+      await AsyncStorage.setItem('dailyMacros', macrosJson);
+      await AsyncStorage.setItem(`dailyMacros_${updatedMacros.date}`, macrosJson);
     }
 
     setSelectedReminder(null);
@@ -466,7 +497,9 @@ export default function App() {
     }
     const updated: ReminderCompletionData = { ...completionData, completions: newCompletions, adjustedTimes: newAdjustedTimes };
     setCompletionData(updated);
-    await AsyncStorage.setItem('reminderCompletions', JSON.stringify(updated));
+    const completionJson = JSON.stringify(updated);
+    await AsyncStorage.setItem('reminderCompletions', completionJson);
+    await AsyncStorage.setItem(`reminderCompletions_${updated.date}`, completionJson);
 
     const updatedMeals = dailyMacros.meals.filter(m => m.reminderId !== id);
     const newConsumed = updatedMeals.reduce((acc, m) => ({
@@ -475,7 +508,9 @@ export default function App() {
     }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
     const updatedMacros: DailyMacros = { ...dailyMacros, consumed: newConsumed, meals: updatedMeals };
     setDailyMacros(updatedMacros);
-    await AsyncStorage.setItem('dailyMacros', JSON.stringify(updatedMacros));
+    const macrosJson = JSON.stringify(updatedMacros);
+    await AsyncStorage.setItem('dailyMacros', macrosJson);
+    await AsyncStorage.setItem(`dailyMacros_${updatedMacros.date}`, macrosJson);
   };
 
   // ── Workout Detail ──
@@ -586,11 +621,25 @@ export default function App() {
   const checkFollowup = () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayKey = yesterday.toISOString().split('T')[0];
     const workout = getWorkoutForDay(yesterday.getDay(), scheduleOffset);
-    if (workout.type !== 'rest' && completedDays[yesterday.toISOString().split('T')[0]] === undefined) {
-      setYesterdayWorkout(workout);
-      setShowFollowup(true);
-    }
+    if (workout.type === 'rest') return;
+    AsyncStorage.getItem('completedDays').then((saved) => {
+      let days: Record<string, boolean> = {};
+      try {
+        days = saved ? JSON.parse(saved) : {};
+      } catch {
+        return;
+      }
+      if (days[yesterdayKey] !== undefined) return; // already marked (done or missed)
+      AsyncStorage.getItem('scheduleOffset').then((offsetStr) => {
+        const offset = offsetStr ? parseInt(offsetStr, 10) : 0;
+        const workoutForDay = getWorkoutForDay(yesterday.getDay(), isNaN(offset) ? 0 : offset);
+        if (workoutForDay.type === 'rest') return;
+        setYesterdayWorkout(workoutForDay);
+        setShowFollowup(true);
+      });
+    });
   };
 
   const recordFollowup = async (completed: boolean) => {
@@ -598,7 +647,6 @@ export default function App() {
     yesterday.setDate(yesterday.getDate() - 1);
     await saveCompletedDays({ ...completedDays, [yesterday.toISOString().split('T')[0]]: completed });
     setShowFollowup(false);
-    Alert.alert(completed ? '🔥 Great Work!' : '💪 No Worries!', completed ? 'Keep up the momentum!' : 'Stay consistent, you got this!');
   };
 
   const addExtraMeal = useCallback(async (meal: MealOption) => {
@@ -612,7 +660,9 @@ export default function App() {
     };
     const updatedMacros: DailyMacros = { ...dailyMacros, consumed: newConsumed, meals: newMeals };
     setDailyMacros(updatedMacros);
-    await AsyncStorage.setItem('dailyMacros', JSON.stringify(updatedMacros));
+    const macrosJson = JSON.stringify(updatedMacros);
+    await AsyncStorage.setItem('dailyMacros', macrosJson);
+    await AsyncStorage.setItem(`dailyMacros_${updatedMacros.date}`, macrosJson);
   }, [dailyMacros]);
 
   const deleteExtraMeal = useCallback(async (index: number) => {
@@ -625,7 +675,9 @@ export default function App() {
     }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
     const updatedMacros: DailyMacros = { ...dailyMacros, consumed: newConsumed, meals: updatedMeals };
     setDailyMacros(updatedMacros);
-    await AsyncStorage.setItem('dailyMacros', JSON.stringify(updatedMacros));
+    const macrosJson = JSON.stringify(updatedMacros);
+    await AsyncStorage.setItem('dailyMacros', macrosJson);
+    await AsyncStorage.setItem(`dailyMacros_${updatedMacros.date}`, macrosJson);
   }, [dailyMacros]);
 
   const toggleDayCompletion = async (dateKey: string) => {
@@ -633,8 +685,34 @@ export default function App() {
     await saveCompletedDays({ ...completedDays, [dateKey]: !completedDays[dateKey] });
   };
 
+  const loadDayData = useCallback(async (dateKey: string) => {
+    const today = getTodayKey();
+    if (dateKey === today) {
+      setScheduleDayData({
+        completionData,
+        dailyMacros,
+        hydration,
+      });
+      return;
+    }
+    const [savedCompletions, savedMacros, savedHydration] = await Promise.all([
+      AsyncStorage.getItem(`reminderCompletions_${dateKey}`),
+      AsyncStorage.getItem(`dailyMacros_${dateKey}`),
+      AsyncStorage.getItem(`hydration_${dateKey}`),
+    ]);
+    const defaultCompletion: ReminderCompletionData = { date: dateKey, completions: {}, adjustedTimes: {} };
+    const defaultMacros: DailyMacros = { date: dateKey, consumed: { calories: 0, protein: 0, carbs: 0, fats: 0 }, meals: [] };
+    const defaultHydration: HydrationData = { date: dateKey, glasses: 0, lastReminderHour: 5 };
+    setScheduleDayData({
+      completionData: savedCompletions ? JSON.parse(savedCompletions) : defaultCompletion,
+      dailyMacros: savedMacros ? JSON.parse(savedMacros) : defaultMacros,
+      hydration: savedHydration ? JSON.parse(savedHydration) : defaultHydration,
+    });
+  }, [completionData, dailyMacros, hydration]);
+
   const handleDayPress = useCallback(async (day: WeekDay) => {
     setSelectedScheduleDay(day);
+    setScheduleDayData({ completionData: null, dailyMacros: null, hydration: null });
     if (day.isRest) {
       const saved = await AsyncStorage.getItem(`workoutShift_${day.dateKey}`);
       const shift = saved === 'evening' ? 'evening' : 'morning';
@@ -646,7 +724,8 @@ export default function App() {
       setScheduleDayShift(shift);
       setScheduleDayReminders(shift === 'evening' ? eveningReminders : defaultReminders);
     }
-  }, []);
+    loadDayData(day.dateKey);
+  }, [loadDayData]);
 
   const handleScheduleShiftChange = useCallback(async (shift: WorkoutShift) => {
     if (!selectedScheduleDay?.dateKey) return;
@@ -742,6 +821,7 @@ export default function App() {
             onClose={() => setSelectedScheduleDay(null)}
             onToggleComplete={toggleDayCompletion}
             isPastOrToday={selectedScheduleDay ? selectedScheduleDay.dateKey <= getTodayKey() : false}
+            dayData={scheduleDayData}
           />
           <MealDetailModal
             selectedReminder={selectedReminder}
